@@ -1,0 +1,25 @@
+name = "eth_stm32"
+description = "Ethernet driver for STM32F4xx and higher"
+version = "0.1.0-dev"
+
+authors = ["Max Reznik"]
+maintainers = ["Max Reznik <reznikmm@gmail.com>"]
+maintainers-logins = ["reznikmm"]
+licenses = "MIT OR Apache-2.0 WITH LLVM-exception"
+website = "https://github.com/reznikmm/eth_stm32"
+tags = ["ethernet", "netword", "driver"]
+project-files = ["gnat/eth_stm32.gpr"]
+
+[configuration]
+output_dir = "gnat"
+generate_ada = false
+generate_c = false
+
+[build-switches]
+development.optimization = ["-O0"]
+development.style_checks = ["-gnaty"]
+development.contracts = "Yes"
+
+[[depends-on]]
+stm32 = "^1.0"
+ethernet = "~0.1.0-dev"

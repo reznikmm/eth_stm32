@@ -1,0 +1,37 @@
+--  SPDX-FileCopyrightText: 2024 Max Reznik <reznikmm@gmail.com>
+--
+--  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+----------------------------------------------------------------
+
+with "eth_stm32_config.gpr";
+with "stm32.gpr";  --  provided by a board crate
+project Eth_Stm32 is
+   for Runtime ("Ada") use "embedded-stm32f4";
+   for Target use "arm-eabi";
+
+   for Library_Name use "Eth_Stm32";
+   for Library_Version use Project'Library_Name & ".so." & Eth_Stm32_Config.Crate_Version;
+
+   for Source_Dirs use ("../source");
+   for Object_Dir use "../.obj/" & Eth_Stm32_Config.Build_Profile;
+   for Create_Missing_Dirs use "True";
+   for Library_Dir use "../.lib";
+
+   type Library_Type_Type is ("relocatable", "static", "static-pic");
+   Library_Type : Library_Type_Type :=
+     external ("ETH_STM32_LIBRARY_TYPE", external ("LIBRARY_TYPE", "static"));
+   for Library_Kind use Library_Type;
+
+   package Compiler is
+      for Default_Switches ("Ada") use Eth_Stm32_Config.Ada_Compiler_Switches;
+   end Compiler;
+
+   package Binder is
+      for Switches ("Ada") use ("-Es"); --  Symbolic traceback
+   end Binder;
+
+   package Install is
+      for Artifacts (".") use ("share");
+   end Install;
+
+end Eth_Stm32;
