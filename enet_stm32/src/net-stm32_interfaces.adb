@@ -25,6 +25,7 @@ with STM32_SVD.Ethernet;
 with STM32_SVD.RCC;
 with STM32_SVD.SYSCFG;
 with STM32.Device;
+with STM32.RCC;
 
 with Enet_Stm32_Config;
 with Net.STM32_Descriptors;
@@ -463,6 +464,8 @@ package body Net.STM32_Interfaces is
       RCC_Periph.AHB1ENR.ETHMACTXEN := False;
       RCC_Periph.AHB1ENR.ETHMACRXEN := False;
       RCC_Periph.AHB1ENR.ETHMACPTPEN := False;
+
+      STM32.RCC.SYSCFG_Clock_Enable;
 
       STM32.Device.Enable_Clock (Pins);
       STM32.GPIO.Configure_IO (Pins, Configuration);
