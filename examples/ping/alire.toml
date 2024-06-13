@@ -1,0 +1,30 @@
+name = "net_test"
+description = ""
+version = "0.1.0-dev"
+
+authors = ["Max Reznik"]
+maintainers = ["Max Reznik <reznikmm@gmail.com>"]
+maintainers-logins = ["reznikmm"]
+licenses = "MIT OR Apache-2.0 WITH LLVM-exception"
+website = ""
+tags = []
+
+executables = ["net_test"]
+
+[build-switches]
+development.optimization = ["-O0"]
+development.style_checks = ["-gnaty"]
+development.contracts = "Yes"
+
+[build-profiles]
+"*" = "development"
+
+[[depends-on]]
+stm32f4xx_m = "~0.1.0-dev"
+enet = "~0.1.0-dev"
+enet_stm32 = "~0.1.0-dev"
+eth_stm32 = "~0.1.0-dev"
+
+[[pins]]
+eth_stm32 = { path='../../eth_stm32' }
+enet_stm32 = { path='../../enet_stm32' }
