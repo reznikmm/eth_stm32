@@ -3,19 +3,19 @@
 --  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 ----------------------------------------------------------------
 
-with "config/net_test_config.gpr";
-project Net_Test is
+with "config/ping_config.gpr";
+project Ping is
    for Target use "arm-eabi";
    for Runtime ("Ada") use "embedded-stm32f4";
 
    for Source_Dirs use ("src/", "config/");
-   for Object_Dir use "obj/" & Net_Test_Config.Build_Profile;
+   for Object_Dir use "obj/" & Ping_Config.Build_Profile;
    for Create_Missing_Dirs use "True";
    for Exec_Dir use "bin";
-   for Main use ("net_test.adb");
+   for Main use ("ping.adb");
 
    package Compiler is
-      for Default_Switches ("Ada") use Net_Test_Config.Ada_Compiler_Switches;
+      for Default_Switches ("Ada") use Ping_Config.Ada_Compiler_Switches;
    end Compiler;
 
    package Binder is
@@ -32,4 +32,4 @@ project Net_Test is
       for Connection_Tool use "st-util";
    end Ide;
 
-end Net_Test;
+end Ping;

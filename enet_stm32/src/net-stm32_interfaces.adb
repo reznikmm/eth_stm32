@@ -70,7 +70,7 @@ package body Net.STM32_Interfaces is
 
    Total_Buffers : constant Positive :=
      Enet_Stm32_Config.Extra_Buffers +
-     Enet_Stm32_Config.RX_Ring_Size +
+     Enet_Stm32_Config.TX_Ring_Size +
      Enet_Stm32_Config.RX_Ring_Size;
 
    NET_BUFFER_SIZE : constant Positive :=

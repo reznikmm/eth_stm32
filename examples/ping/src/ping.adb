@@ -16,7 +16,7 @@ with Net.Utils;
 
 with Network;
 
-procedure Net_Test is
+procedure Ping is
    use type Net.Ip_Addr;
 
    procedure Send_Ping (Host : Net.Ip_Addr; Seq : in out Net.Uint16);
@@ -97,4 +97,4 @@ begin
          delay until Now + Ada.Real_Time.Seconds (1);
       end;
    end loop;
-end Net_Test;
+end Ping;
