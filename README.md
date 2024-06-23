@@ -18,8 +18,14 @@ STM32F4x and higher. It has two crates and an example. Crates:
   have IPv4, ICMP, UDP, ARP, DNS, DHCPv4, NTP protocols on you STM32
   based board.
 
-* [ping](examples)/ping - The example demonstrates how to send and
+* [ping](examples/ping) - The example demonstrates how to send and
   receive ICMP Echo requests on
+  [stm32f4xx_m](https://stm32-base.org/boards/STM32F407VGT6-STM32F4XX-M.html)
+  with PHY [LAN9303](https://www.microchip.com/en-us/product/LAN9303)
+  attached.
+
+* [echo](examples/echo) - The example demonstrates how to work with UDP
+  datagrams on
   [stm32f4xx_m](https://stm32-base.org/boards/STM32F407VGT6-STM32F4XX-M.html)
   with PHY [LAN9303](https://www.microchip.com/en-us/product/LAN9303)
   attached.
@@ -96,6 +102,10 @@ To install this software use the custom Alire index:
 
   Compile, flash and run `ping` example under debugger to see Ada.Text_IO
   output.
+
+* `echo`: Attach LAN9303 to stm32f4xx_m as in `ping`.
+  Compile, flash and run `echo` example, then test with
+  `echo abcdef | nc -u -v <ip> 12345`.
 
 ## Implementation details
 
