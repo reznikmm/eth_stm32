@@ -58,14 +58,12 @@ To install this software use the custom Alire index:
   ```ada
      STM32_MDIO : aliased Ethernet.STM32_MDIO.STM32_SMI;
   begin
-     STM32_MDIO.Initialize
-       (MDC  => STM32.Device.PC1,
-        MDIO => STM32.Device.PA2);
+     STM32_MDIO.Initialize;
 
-      Ethernet.PHY_Management.Reset
-        (MDIO    => STM32_MDIO,
-         PHY     => 0,  --  Id of the attached PHY
-         Success => Ok);
+     Ethernet.PHY_Management.Reset
+       (MDIO    => STM32_MDIO,
+        PHY     => 0,  --  Id of the attached PHY
+        Success => Ok);
   ```
 
 * `enet_stm32`: declare an object of `Net.STM32_Interfaces.STM32_Ifnet` type,

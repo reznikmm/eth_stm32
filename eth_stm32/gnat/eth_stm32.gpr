@@ -4,7 +4,6 @@
 ----------------------------------------------------------------
 
 with "eth_stm32_config.gpr";
-with "stm32.gpr";  --  provided by a board crate
 project Eth_Stm32 is
    for Runtime ("Ada") use "embedded-stm32f4";
    for Target use "arm-eabi";
@@ -24,6 +23,8 @@ project Eth_Stm32 is
 
    package Compiler is
       for Default_Switches ("Ada") use Eth_Stm32_Config.Ada_Compiler_Switches;
+      for Switches ("i-stm32-ethernet.ads") use
+        Eth_Stm32_Config.Ada_Compiler_Switches & ("-gnatg");
    end Compiler;
 
    package Binder is

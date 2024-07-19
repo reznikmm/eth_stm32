@@ -3,43 +3,82 @@
 --  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 ----------------------------------------------------------------
 
-with STM32.Device;
-
-with STM32_SVD.RCC;
-
 with Ada.Real_Time;
---  with STM32_SVD.SYSCFG;
+
+with Interfaces.STM32.RCC;
+with Interfaces.STM32.GPIO;
 
 package body Ethernet.STM32_MDIO is
 
-   Eth : STM32_SVD.Ethernet.Ethernet_MAC_Peripheral renames
-     STM32_SVD.Ethernet.Ethernet_MAC_Periph;
+   Eth : Ethernet.STM32_MDIO_SVD.Ethernet.Ethernet_MAC_Peripheral renames
+     Ethernet.STM32_MDIO_SVD.Ethernet.Ethernet_MAC_Periph;
+
+   procedure Configure_Pin
+     (Port : Pin_Port;
+      Pin  : Pin_Index);
+
+   procedure Configure_GPIO_Pin
+     (Port : in out Interfaces.STM32.GPIO.GPIO_Peripheral;
+      Pin  : Pin_Index);
+
+   ------------------------
+   -- Configure_GPIO_Pin --
+   ------------------------
+
+   procedure Configure_GPIO_Pin
+     (Port : in out Interfaces.STM32.GPIO.GPIO_Peripheral;
+      Pin  : Pin_Index)
+   is
+      AF : constant := 11;  --  Alternate Function: Eth
+   begin
+      Port.MODER.Arr (Pin) := 2;  --  AF
+      Port.PUPDR.Arr (Pin) := 0;  --  Floating
+      Port.OTYPER.OT.Arr (Pin) := 0; --  Open drain: no
+      Port.OSPEEDR.Arr (Pin) := 3; --  Very high speed
+
+      if Pin in Port.AFRL.Arr'Range then
+         Port.AFRL.Arr (Pin) := AF;
+      else
+         Port.AFRH.Arr (Pin) := AF;
+      end if;
+   end Configure_GPIO_Pin;
+
+   -------------------
+   -- Configure_Pin --
+   -------------------
+
+   procedure Configure_Pin
+     (Port : Pin_Port;
+      Pin  : Pin_Index) is
+   begin
+      case Port is
+         when 'A' =>
+            Interfaces.STM32.RCC.RCC_Periph.AHB1ENR.GPIOAEN := 1;
+            Configure_GPIO_Pin (Interfaces.STM32.GPIO.GPIOA_Periph, Pin);
+         when 'C' =>
+            Interfaces.STM32.RCC.RCC_Periph.AHB1ENR.GPIOCEN := 1;
+            Configure_GPIO_Pin (Interfaces.STM32.GPIO.GPIOC_Periph, Pin);
+         when others =>
+            raise Program_Error;  --  Unimplemented
+      end case;
+   end Configure_Pin;
 
    ----------------
    -- Initialize --
    ----------------
 
    procedure Initialize
-     (Self : in out STM32_SMI'Class;
-      MDC  : STM32.GPIO.GPIO_Point;
-      MDIO : STM32.GPIO.GPIO_Point;
-      HCLK : System.STM32.Frequency := System.STM32.System_Clocks.HCLK)
-   is
-      Config : constant STM32.GPIO.GPIO_Port_Configuration :=
-        (Mode           => STM32.GPIO.Mode_AF,
-         AF_Output_Type => STM32.GPIO.Push_Pull,
-         AF_Speed       => STM32.GPIO.Speed_100MHz,
-         AF             => STM32.Device.GPIO_AF_ETH_11,
-         Resistors      => STM32.GPIO.Floating);
-
+     (Self      : in out STM32_SMI'Class;
+      MDIO_Port : Pin_Port := 'A';
+      MDIO_Pin  : Pin_Index := 2;
+      MDC_Port  : Pin_Port := 'C';
+      MDC_Pin   : Pin_Index := 1;
+      HCLK      : System.STM32.Frequency := System.STM32.System_Clocks.HCLK) is
    begin
+      Configure_Pin (MDIO_Port, MDIO_Pin);
+      Configure_Pin (MDC_Port, MDC_Pin);
       Self.Set_Clock_Frequency (HCLK);
-      STM32.Device.Enable_Clock (MDC);
-      STM32.Device.Enable_Clock (MDIO);
-      MDC.Configure_IO (Config);
-      MDIO.Configure_IO (Config);
-
-      STM32_SVD.RCC.RCC_Periph.AHB1ENR.ETHMACEN := True;
+      Interfaces.STM32.RCC.RCC_Periph.AHB1ENR.ETHMACEN := 1;  --  True
    end Initialize;
 
    -------------------

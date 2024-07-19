@@ -21,5 +21,4 @@ development.style_checks = ["-gnaty"]
 development.contracts = "Yes"
 
 [[depends-on]]
-stm32 = "^1.0"
 ethernet = "~0.1.0-dev"
