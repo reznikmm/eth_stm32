@@ -17,32 +17,36 @@
 -----------------------------------------------------------------------
 
 pragma Style_Checks (Off);
+pragma Ada_2022;
 
 with Ada.Interrupts.Names;
 with Ada.Unchecked_Conversion;
 
-with STM32_SVD.Ethernet;
-with STM32_SVD.RCC;
-with STM32_SVD.SYSCFG;
-with STM32.Device;
-with STM32.RCC;
+with Net.STM32_SVD.Ethernet;
+with Interfaces.STM32.GPIO;
+with Interfaces.STM32.RCC;
+with Interfaces.STM32.SYSCFG;
+use Interfaces.STM32;
 
 with Enet_Stm32_Config;
 with Net.STM32_Descriptors;
 
-with HAL;
 with Cortex_M.Cache;
 package body Net.STM32_Interfaces is
-   use HAL;
+   use Net.STM32_Descriptors;
 
-   Ethernet_MAC_Periph : STM32_SVD.Ethernet.Ethernet_MAC_Peripheral renames
-     STM32_SVD.Ethernet.Ethernet_MAC_Periph;
+   Ethernet_MAC_Periph : Net.STM32_SVD.Ethernet.Ethernet_MAC_Peripheral renames
+     Net.STM32_SVD.Ethernet.Ethernet_MAC_Periph;
 
-   Ethernet_DMA_Periph : STM32_SVD.Ethernet.Ethernet_DMA_Peripheral renames
-     STM32_SVD.Ethernet.Ethernet_DMA_Periph;
+   Ethernet_DMA_Periph : Net.STM32_SVD.Ethernet.Ethernet_DMA_Peripheral renames
+     Net.STM32_SVD.Ethernet.Ethernet_DMA_Periph;
+
+   procedure Configure_Pin
+     (Port : Pin_Port;
+      Pins : Pin_Index_Set);
 
    function W is new Ada.Unchecked_Conversion
-     (System.Address, HAL.UInt32);
+     (System.Address, Standard.Interfaces.STM32.Uint32);
 
    type Tx_Position is new Uint32 range 0 .. Enet_Stm32_Config.TX_Ring_Size;
    type Rx_Position is new Uint32 range 0 .. Enet_Stm32_Config.RX_Ring_Size;
@@ -76,7 +80,7 @@ package body Net.STM32_Interfaces is
    NET_BUFFER_SIZE : constant Positive :=
      Positive (Net.Buffers.NET_ALLOC_SIZE) * Total_Buffers;
 
-   Buffer_Memory : HAL.UInt8_Array (1 .. NET_BUFFER_SIZE);
+   Buffer_Memory : UInt8_Array (1 .. NET_BUFFER_SIZE);
 
    function Next_Tx (Value : in Tx_Position) return Tx_Position;
    function Next_Rx (Value : in Rx_Position) return Rx_Position;
@@ -145,29 +149,42 @@ package body Net.STM32_Interfaces is
       Rx_Ring      : Rx_Ring_Array_Type_Access;
    end Receive_Queue;
 
-   overriding
-   procedure Send (Ifnet : in out STM32_Ifnet;
-                   Buf   : in out Net.Buffers.Buffer_Type) is
+   ----------
+   -- Send --
+   ----------
+
+   overriding procedure Send
+     (Self   : in out STM32_Ifnet;
+      Packet : in out Net.Buffers.Buffer_Type)
+   is
       use type Net.Uint64;
    begin
-      Ifnet.Tx_Stats.Packets := Ifnet.Tx_Stats.Packets + 1;
-      Ifnet.Tx_Stats.Bytes := Ifnet.Tx_Stats.Bytes + Net.Uint64 (Buf.Get_Length);
-      Transmit_Queue.Send (Buf);
+      Self.Tx_Stats.Packets := @ + 1;
+      Self.Tx_Stats.Bytes := @ + Net.Uint64 (Packet.Get_Length);
+      Transmit_Queue.Send (Packet);
    end Send;
 
-   overriding
-   procedure Receive (Ifnet : in out STM32_Ifnet;
-                      Buf   : in out Net.Buffers.Buffer_Type) is
+   -------------
+   -- Receive --
+   -------------
+
+   overriding procedure Receive
+     (Self   : in out STM32_Ifnet;
+      Packet : in out Net.Buffers.Buffer_Type)
+   is
       use type Net.Uint64;
    begin
-      Receive_Queue.Wait_Packet (Buf);
-      Ifnet.Rx_Stats.Packets := Ifnet.Rx_Stats.Packets + 1;
-      Ifnet.Rx_Stats.Bytes := Ifnet.Rx_Stats.Bytes + Net.Uint64 (Buf.Get_Length);
+      Receive_Queue.Wait_Packet (Packet);
+      Self.Rx_Stats.Packets := @ + 1;
+      Self.Rx_Stats.Bytes := @ + Net.Uint64 (Packet.Get_Length);
    end Receive;
 
-   overriding
-   procedure Initialize (Ifnet : in out STM32_Ifnet) is
-      pragma Unreferenced (Ifnet);
+   ----------------
+   -- Initialize --
+   ----------------
+
+   overriding procedure Initialize (Self : in out STM32_Ifnet) is
+      pragma Unreferenced (Self);
 
       List : Net.Buffers.Buffer_List;
    begin
@@ -442,51 +459,121 @@ package body Net.STM32_Interfaces is
 
    end Receive_Queue;
 
+   ---------------
+   -- Configure --
+   ---------------
+
    procedure Configure
-     (Ifnet : in out STM32_Ifnet'Class;
-      Pins  : STM32.GPIO.GPIO_Points;
-      RMII  : Boolean := True)
+     (Self : in out STM32_Ifnet'Class;
+      Pins : Pin_Set;
+      RMII : Boolean := True)
    is
-      pragma Unreferenced (Ifnet);
+      pragma Unreferenced (Self);
 
-      Configuration : constant STM32.GPIO.GPIO_Port_Configuration :=
-        (Mode           => STM32.GPIO.Mode_AF,
-         AF             => STM32.Device.GPIO_AF_ETH_11,
-         AF_Speed       => STM32.GPIO.Speed_100MHz,
-         AF_Output_Type => STM32.GPIO.Push_Pull,
-         Resistors      => STM32.GPIO.Floating);
-
-      RCC_Periph : STM32_SVD.RCC.RCC_Peripheral renames
-        STM32_SVD.RCC.RCC_Periph;
+      RCC_Periph : Standard.Interfaces.STM32.RCC.RCC_Peripheral renames
+        Standard.Interfaces.STM32.RCC.RCC_Periph;
    begin
       --  Disable clocks
-      RCC_Periph.AHB1ENR.ETHMACEN := False;
-      RCC_Periph.AHB1ENR.ETHMACTXEN := False;
-      RCC_Periph.AHB1ENR.ETHMACRXEN := False;
-      RCC_Periph.AHB1ENR.ETHMACPTPEN := False;
+      RCC_Periph.AHB1ENR.ETHMACEN := 0;
+      RCC_Periph.AHB1ENR.ETHMACTXEN := 0;
+      RCC_Periph.AHB1ENR.ETHMACRXEN := 0;
+      RCC_Periph.AHB1ENR.ETHMACPTPEN := 0;
+      RCC_Periph.APB2ENR.SYSCFGEN := 1;
 
-      STM32.RCC.SYSCFG_Clock_Enable;
+      for Port in Pins'Range loop
+         Configure_Pin (Port, Pins (Port));
+      end loop;
 
-      STM32.Device.Enable_Clock (Pins);
-      STM32.GPIO.Configure_IO (Pins, Configuration);
       --  Select RMII (before enabling the clocks)
-      STM32_SVD.SYSCFG.SYSCFG_Periph.PMC.MII_RMII_SEL := RMII;
+      Standard.Interfaces.STM32.SYSCFG.SYSCFG_Periph.PMC.MII_RMII_SEL :=
+        Boolean'Pos (RMII);
 
       --  Enable clocks
-      RCC_Periph.AHB1ENR.ETHMACEN := True;
-      RCC_Periph.AHB1ENR.ETHMACTXEN := True;
-      RCC_Periph.AHB1ENR.ETHMACRXEN := True;
-      RCC_Periph.AHB1ENR.ETHMACPTPEN := True;
+      RCC_Periph.AHB1ENR.ETHMACEN := 1;
+      RCC_Periph.AHB1ENR.ETHMACTXEN := 1;
+      RCC_Periph.AHB1ENR.ETHMACRXEN := 1;
+      RCC_Periph.AHB1ENR.ETHMACPTPEN := 1;
 
       --  Reset
-      RCC_Periph.AHB1RSTR.ETHMACRST := True;
-      RCC_Periph.AHB1RSTR.ETHMACRST := False;
+      RCC_Periph.AHB1RSTR.ETHMACRST := 1;
+      RCC_Periph.AHB1RSTR.ETHMACRST := 0;
 
-      --  Software reset
+      --  Software reset. This hangs if there is no CLK_REF signal
       Ethernet_DMA_Periph.DMABMR.SR := True;
       while Ethernet_DMA_Periph.DMABMR.SR loop
          null;
       end loop;
    end Configure;
+
+   ------------------------
+   -- Configure_GPIO_Pin --
+   ------------------------
+
+   procedure Configure_GPIO_Pin
+     (Port : in out Standard.Interfaces.STM32.GPIO.GPIO_Peripheral;
+      Pins : Pin_Index_Set)
+   is
+      AF : constant := 11;  --  Alternate Function: Eth
+   begin
+      for Pin in Pins'Range when Pins (Pin) loop
+         Port.MODER.Arr (Pin) := 2;  --  AF
+         Port.PUPDR.Arr (Pin) := 0;  --  Floating
+         Port.OTYPER.OT.Arr (Pin) := 0; --  Open drain: no
+         Port.OSPEEDR.Arr (Pin) := 3; --  Very high speed
+
+         if Pin in Port.AFRL.Arr'Range then
+            Port.AFRL.Arr (Pin) := AF;
+         else
+            Port.AFRH.Arr (Pin) := AF;
+         end if;
+      end loop;
+   end Configure_GPIO_Pin;
+
+   -------------------
+   -- Configure_Pin --
+   -------------------
+
+   procedure Configure_Pin
+     (Port : Pin_Port;
+      Pins : Pin_Index_Set)
+   is
+      use Standard.Interfaces.STM32;
+
+      RCC_Periph : RCC.RCC_Peripheral renames RCC.RCC_Periph;
+   begin
+      if not (for some Pin of Pins => Pin) then
+         return;
+      end if;
+
+      case Port is
+         when 'A' =>
+            RCC_Periph.AHB1ENR.GPIOAEN := 1;
+            Configure_GPIO_Pin (GPIO.GPIOA_Periph, Pins);
+         when 'B' =>
+            RCC_Periph.AHB1ENR.GPIOBEN := 1;
+            Configure_GPIO_Pin (GPIO.GPIOB_Periph, Pins);
+         when 'C' =>
+            RCC_Periph.AHB1ENR.GPIOCEN := 1;
+            Configure_GPIO_Pin (GPIO.GPIOC_Periph, Pins);
+         when 'D' =>
+            RCC_Periph.AHB1ENR.GPIODEN := 1;
+            Configure_GPIO_Pin (GPIO.GPIOD_Periph, Pins);
+         when 'E' =>
+            RCC_Periph.AHB1ENR.GPIOEEN := 1;
+            Configure_GPIO_Pin (GPIO.GPIOE_Periph, Pins);
+         when 'F' =>
+            RCC_Periph.AHB1ENR.GPIOFEN := 1;
+            Configure_GPIO_Pin (GPIO.GPIOF_Periph, Pins);
+         when 'G' =>
+            RCC_Periph.AHB1ENR.GPIOGEN := 1;
+            Configure_GPIO_Pin (GPIO.GPIOG_Periph, Pins);
+         when 'H' =>
+            RCC_Periph.AHB1ENR.GPIOHEN := 1;
+            Configure_GPIO_Pin (GPIO.GPIOH_Periph, Pins);
+         when 'I' =>
+            RCC_Periph.AHB1ENR.GPIOIEN := 1;
+            Configure_GPIO_Pin (GPIO.GPIOI_Periph, Pins);
+      end case;
+   end Configure_Pin;
 
 end Net.STM32_Interfaces;

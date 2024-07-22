@@ -18,33 +18,36 @@
 
 with Net.Buffers;
 with Net.Interfaces;
-with STM32.GPIO;
 
 package Net.STM32_Interfaces is
 
-   --  The STM32F Ethernet driver.
    type STM32_Ifnet is limited new Net.Interfaces.Ifnet_Type with null record;
+   --  The STM32Fxx Ethernet driver.
 
+   subtype Pin_Port is Character range 'A' .. 'I';
+   subtype Pin_Index is Natural range 0 .. 15;
+   type Pin_Index_Set is array (Pin_Index) of Boolean with Pack;
+   type Pin_Set is array (Pin_Port) of Pin_Index_Set;
+
+   procedure Configure
+     (Self : in out STM32_Ifnet'Class;
+      Pins : Pin_Set;
+      RMII : Boolean := True);
    --  Reset and configure STM32 peripherals.
    --  Corresponding PHY should be configured before call this if needed to
    --  provide CLK_REF to STM32 chip.
-   procedure Configure
-     (Ifnet : in out STM32_Ifnet'Class;
-      Pins  : STM32.GPIO.GPIO_Points;
-      RMII  : Boolean := True);
 
+   overriding procedure Initialize (Self : in out STM32_Ifnet);
    --  Initialize the network interface.
-   overriding
-   procedure Initialize (Ifnet : in out STM32_Ifnet);
 
+   overriding procedure Send
+     (Self   : in out STM32_Ifnet;
+      Packet : in out Net.Buffers.Buffer_Type);
    --  Send a packet to the interface.
-   overriding
-   procedure Send (Ifnet : in out STM32_Ifnet;
-                   Buf   : in out Net.Buffers.Buffer_Type);
 
+   overriding procedure Receive
+     (Self   : in out STM32_Ifnet;
+      Packet : in out Net.Buffers.Buffer_Type);
    --  Receive a packet from the interface.
-   overriding
-   procedure Receive (Ifnet : in out STM32_Ifnet;
-                      Buf   : in out Net.Buffers.Buffer_Type);
 
 end Net.STM32_Interfaces;

@@ -21,7 +21,7 @@ development.contracts = "Yes"
 
 [[depends-on]]
 stm32f4xx_m = "~0.1.0-dev"
-enet = "~0.1.0-dev"
+enet = "1.0.0"
 enet_stm32 = "~0.1.0-dev"
 eth_stm32 = "~0.1.0-dev"
 
